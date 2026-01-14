@@ -1,0 +1,19 @@
+# UI
+streamlit>=1.36.0
+
+# Environment variables
+python-dotenv>=1.0.1
+
+# LangChain core
+langchain>=0.2.14
+langchain-community>=0.2.12
+langchain-openai>=0.1.22
+
+# Vector store
+faiss-cpu>=1.8.0.post1
+
+# PDF loading
+pypdf>=4.3.1
+
+# Token counting (used internally by OpenAI/LangChain)
+tiktoken>=0.7.0
