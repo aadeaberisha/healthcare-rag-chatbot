@@ -43,7 +43,11 @@ def load_pdfs(folder: str = "data/raw_docs") -> List[Document]:
         pages = loader.load()
 
         for d in pages:
-            d.metadata["source"] = path.name
+            d.metadata = {
+                "source": path.name,
+                "page": d.metadata.get("page"),
+            }
+            
             d.page_content = clean_text(d.page_content)
 
         docs.extend(pages)
