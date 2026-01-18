@@ -7,6 +7,8 @@ from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 
+from rag.guardrails import is_prompt_injection
+
 from rag.config import (
     NO_ANSWER,
     DEFAULT_LLM_MODEL,
@@ -40,8 +42,8 @@ def _rewrite_for_retrieval(
         return question
 
     prompt = REWRITE_QUERY_PROMPT.format(
-    memory=memory_text,
-    question=question,
+        memory=memory_text,
+        question=question,
     )
 
     try:
@@ -63,6 +65,9 @@ def answer_question(
     temperature: float = 0.2,
     memory_text: str = "",
 ) -> RAGResult:
+    if is_prompt_injection(question):
+        return RAGResult(answer=NO_ANSWER, citations=[])
+    
     llm = ChatOpenAI(model=model, temperature=temperature)
 
     retrieval_query = _rewrite_for_retrieval(question=question, memory_text=memory_text, llm=llm)
@@ -79,6 +84,20 @@ def answer_question(
         max_distance,
         max_contexts=max_contexts,
     )
+    
+    if not contexts and retrieval_query.strip() != question.strip():
+        docs_and_scores = retrieve_with_scores(
+            question,
+            vectorstore,
+            k=k,
+            source_filter=source_filter,
+        )
+        contexts = gate_and_select_contexts(
+            docs_and_scores,
+            max_distance,
+            max_contexts=max_contexts,
+        )
+
     if not contexts:
         return RAGResult(answer=NO_ANSWER, citations=[])
 
