@@ -7,6 +7,13 @@ from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 
+from rag.config import (
+    NO_ANSWER,
+    DEFAULT_LLM_MODEL,
+    DEFAULT_MAX_SOURCES_SHORT,
+    DEFAULT_MAX_SOURCES_LONG,
+    DEFAULT_SHORT_ANSWER_CHAR_LIMIT,
+)
 from rag.prompts import SYSTEM_MSG, build_user_msg
 from rag.retriever import retrieve_with_scores, gate_and_select_contexts, build_citations
 
@@ -21,29 +28,22 @@ def answer_question(
     question: str,
     vectorstore: FAISS,
     k: int = 5,
-    score_threshold: float = 0.9,
-    model: str = "gpt-4o-mini",
+    max_distance: float = 0.9,
+    max_contexts: int = 5,
+    model: str = DEFAULT_LLM_MODEL,
     temperature: float = 0.2,
 ) -> RAGResult:
     docs_and_scores: List[Tuple[Document, float]] = retrieve_with_scores(question, vectorstore, k=k)
 
-    if not docs_and_scores:
-        return RAGResult(
-            answer="It is not explicitly stated in the documents.",
-            citations=[],
-        )
-
-    contexts = gate_and_select_contexts(docs_and_scores, score_threshold)
-
+    contexts = gate_and_select_contexts(
+        docs_and_scores,
+        max_distance,
+        max_contexts=max_contexts,
+    )
     if not contexts:
-        return RAGResult(
-            answer="It is not explicitly stated in the documents.",
-            citations=[],
-        )
+        return RAGResult(answer=NO_ANSWER, citations=[])
 
-    citations = build_citations(contexts)
     user_msg = build_user_msg(question, contexts)
-
     llm = ChatOpenAI(model=model, temperature=temperature)
 
     try:
@@ -53,9 +53,16 @@ def answer_question(
         answer = ""
 
     if not answer:
-        answer = (
-            "Relevant information was found in the documents, "
-            "but an answer could not be generated at this time."
-        )
+        return RAGResult(answer=NO_ANSWER, citations=[])
+
+    if answer.strip() == NO_ANSWER:
+        return RAGResult(answer=NO_ANSWER, citations=[])
+
+    max_sources = (
+        DEFAULT_MAX_SOURCES_SHORT
+        if len(answer) <= DEFAULT_SHORT_ANSWER_CHAR_LIMIT
+        else DEFAULT_MAX_SOURCES_LONG
+    )
+    citations = build_citations(contexts, max_sources=max_sources)
 
     return RAGResult(answer=answer, citations=citations)

@@ -13,7 +13,6 @@ def chunk_documents(
 ) -> List[Document]:
     """
     Splits documents into chunks while keeping metadata (source/page).
-    Adds a chunk_index per source to make citations cleaner.
     """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,

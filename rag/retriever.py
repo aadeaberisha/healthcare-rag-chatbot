@@ -45,12 +45,13 @@ def retrieve_with_scores(
 
 def gate_and_select_contexts(
     docs_and_scores: List[Tuple[Document, float]],
-    score_threshold: float,
+    max_distance: float,
+    max_contexts: int = 5,
 ) -> List[Document]:
     """
     Applies a relevance gate to retrieved documents to prevent hallucinations.
 
-    If the best similarity score exceeds the threshold, no context is returned,
+    If the best similarity score exceeds the maximum allowed distance, no context is returned,
     forcing a safe "not in documents" response.
 
     Returns:
@@ -60,30 +61,44 @@ def gate_and_select_contexts(
         return []
 
     best_score = docs_and_scores[0][1]
-    if best_score > score_threshold:
+    if best_score > max_distance:
         return []
 
-    contexts = [d for (d, s) in docs_and_scores if s <= score_threshold]
+    contexts: List[Document] = []
+    for d, s in docs_and_scores:
+        if s <= max_distance:
+            contexts.append(d)
+        if len(contexts) >= max_contexts:
+            break
+
     return contexts
 
 
-def build_citations(contexts: List[Document]) -> List[str]:
+def build_citations(
+    contexts: List[Document],
+    max_sources: int = 2,
+) -> List[str]:
     """
     Generates a list of unique citations from the selected context documents.
 
     Each citation follows the format:
         document_name | page_number
 
-    Duplicate citations (e.g. multiple chunks from the same page)
-    are removed for a cleaner presentation in the UI.
+    At most `max_sources` unique citations are returned to avoid clutter
+    when the answer is short.
     """
     seen = set()
     citations: List[str] = []
 
     for d in contexts:
         c = citation(d)
-        if c not in seen:
-            seen.add(c)
-            citations.append(c)
+        if c in seen:
+            continue
+
+        seen.add(c)
+        citations.append(c)
+
+        if len(citations) >= max_sources:
+            break
 
     return citations
