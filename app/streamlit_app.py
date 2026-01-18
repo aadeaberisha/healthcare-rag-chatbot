@@ -18,6 +18,7 @@ from rag.config import (
     DEFAULT_MAX_DISTANCE,
     DEFAULT_TOP_K,
     NO_ANSWER,
+    DEFAULT_PDF_DIR
 )
 
 load_dotenv()
@@ -172,21 +173,39 @@ def render_empty_state():
         unsafe_allow_html=True,
     )
 
-@st.cache_resource(show_spinner=False)
-def cached_vectorstore(rebuild: bool = False):
-    return get_vectorstore(rebuild=rebuild)
+def list_documents(pdf_dir: str) -> list[str]:
+    base = Path(pdf_dir)
+    return sorted([p.name for p in base.glob("*.pdf")]) if base.exists() else []
 
-def get_vs_if_ready(api_key: Optional[str], rebuild: bool):
+
+@st.cache_resource(show_spinner=False)
+def cached_vectorstore():
+    return get_vectorstore(rebuild=False)
+
+def get_vs_if_ready(api_key: Optional[str]):
     if not api_key:
-        return None, False
-    vs = cached_vectorstore(rebuild=rebuild)
-    return vs, (vs is not None)
+        return None
+    return cached_vectorstore()
+
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
+
+if "source_filter" not in st.session_state:
+    st.session_state.source_filter = None
+
+if "last_question" not in st.session_state:
+    st.session_state.last_question = None
+
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
+
+if "memory_history" not in st.session_state:
+    st.session_state.memory_history = []
+
 
 with st.sidebar:
     st.header("Settings")
@@ -197,16 +216,35 @@ with st.sidebar:
 
     st.divider()
 
-    col1, col2 = st.columns(2)
-    new_chat = col1.button("New chat", use_container_width=True)
-    rebuild_index = col2.button("Rebuild", use_container_width=True)
-
+    new_chat = st.button("New chat", use_container_width=True)
     if new_chat:
         st.session_state.messages = []
         st.session_state.pending_question = None
+        st.session_state.source_filter = None
+        st.session_state.last_question = None
+        st.session_state.last_answer = None
+        st.session_state.doc_filter = "All documents"
+        st.session_state.memory_history = []
         st.rerun()
 
-vectorstore, index_ready = get_vs_if_ready(api_key, rebuild=rebuild_index)
+    docs = ["All documents"] + list_documents(DEFAULT_PDF_DIR)
+    selected_doc = st.selectbox("Filter by document", docs, index=0, key="doc_filter")
+
+    if "prev_doc_filter" not in st.session_state:
+        st.session_state.prev_doc_filter = selected_doc
+
+    if selected_doc != st.session_state.prev_doc_filter:
+        st.session_state.last_question = None
+        st.session_state.last_answer = None
+        st.session_state.prev_doc_filter = selected_doc
+        st.session_state.memory_history = []
+        st.rerun()
+
+    st.session_state.source_filter = None if selected_doc == "All documents" else selected_doc
+
+
+vectorstore = get_vs_if_ready(api_key)
+
 
 if not st.session_state.messages:
     render_empty_state()
@@ -221,34 +259,48 @@ else:
                     for c in m["citations"]:
                         st.markdown(f"- {c}")
 
+
 pending_q = st.session_state.pending_question
 if pending_q:
     st.session_state.pending_question = None
 
-    if not api_key or not index_ready or vectorstore is None:
+    if not api_key or vectorstore is None:
         st.session_state.messages.append(
             {"role": "assistant", "content": "Knowledge base is not ready.", "citations": []}
         )
         st.rerun()
 
     with st.spinner("Searching documents..."):
+        MEMORY_TURNS = 3
+        memory_text = "\n".join(st.session_state.memory_history[-MEMORY_TURNS:]).strip()
+
         res = rag_answer_question(
             question=pending_q,
             vectorstore=vectorstore,
             k=DEFAULT_TOP_K,
             max_distance=DEFAULT_MAX_DISTANCE,
+            source_filter=st.session_state.source_filter,
+            memory_text=memory_text,
         )
 
-        answer = (res.answer or "").strip()
-        citations = res.citations or []
+    answer = (res.answer or "").strip()
+    citations = res.citations or []
+    if answer == NO_ANSWER:
+        citations = []
 
-        if answer == NO_ANSWER:
-            citations = []
+    st.session_state.last_question = pending_q
+    st.session_state.last_answer = answer
+
+    if answer != NO_ANSWER:
+        st.session_state.memory_history.append(f"Q: {pending_q}\nA: {answer}")
+    else:
+        st.session_state.memory_history.append(f"Q: {pending_q}")
 
     st.session_state.messages.append(
         {"role": "assistant", "content": answer, "citations": citations}
     )
     st.rerun()
+
 
 question = st.chat_input("Ask anything")
 
@@ -259,6 +311,8 @@ if question:
         st.session_state.messages.append(
             {"role": "assistant", "content": greeting_reply(), "citations": []}
         )
+        st.session_state.last_question = None
+        st.session_state.last_answer = None
         st.rerun()
 
     st.session_state.pending_question = question

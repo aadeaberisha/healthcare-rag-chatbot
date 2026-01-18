@@ -34,6 +34,17 @@ SYSTEM_MSG = (
 )
 
 
+REWRITE_QUERY_PROMPT = (
+    "You rewrite the user's question into a standalone search query for document retrieval.\n"
+    "Use the chat history ONLY to resolve references (it/that/they/this).\n"
+    "Do NOT add new facts. Do NOT answer the question.\n"
+    "Keep it short and specific.\n\n"
+    "CHAT HISTORY:\n{memory}\n\n"
+    "CURRENT QUESTION:\n{question}\n\n"
+    "Standalone retrieval query:"
+)
+
+
 def build_user_msg(question: str, contexts: List[Document]) -> str:
     context_text = "\n\n".join(d.page_content for d in contexts)
 

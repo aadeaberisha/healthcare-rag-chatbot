@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
@@ -28,19 +28,31 @@ def retrieve_with_scores(
     question: str,
     vectorstore: FAISS,
     k: int = 5,
+    source_filter: Optional[str] = None,
+    oversample_k: int = 5,
 ) -> List[Tuple[Document, float]]:
     """
-    Performs a Top-K similarity search over the FAISS vector store.
+    Top-K search over FAISS.
 
-    Returns:
-        A list of (Document, score) tuples sorted by ascending distance.
-        Lower scores indicate higher semantic similarity.
+    Note: FAISS returns distance scores (lower = more similar).
+    If source_filter is provided, we oversample then filter by metadata["source"].
     """
+    k_fetch = max(k * oversample_k, k)
+
     docs_and_scores: List[Tuple[Document, float]] = (
-        vectorstore.similarity_search_with_score(question, k=k)
+        vectorstore.similarity_search_with_score(question, k=k_fetch)
     )
+
+    if source_filter:
+        sf = source_filter.lower()
+        docs_and_scores = [
+            (d, s)
+            for (d, s) in docs_and_scores
+            if str(d.metadata.get("source", "")).lower() == sf
+        ]
+
     docs_and_scores.sort(key=lambda x: x[1])
-    return docs_and_scores
+    return docs_and_scores[:k]
 
 
 def gate_and_select_contexts(
