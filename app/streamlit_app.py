@@ -4,7 +4,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -178,6 +178,31 @@ def list_documents(pdf_dir: str) -> list[str]:
     return sorted([p.name for p in base.glob("*.pdf")]) if base.exists() else []
 
 
+def get_chunk_count(vectorstore) -> Optional[int]:
+    """
+    Returns the number of chunks stored in the FAISS docstore (if available).
+    Safe for missing/older FAISS formats.
+    """
+    if vectorstore is None:
+        return None
+    try:
+        store = getattr(vectorstore, "docstore", None)
+        if store is None:
+            return None
+        d = getattr(store, "_dict", None)
+        if isinstance(d, dict):
+            return len(d)
+        return None
+    except Exception:
+        return None
+
+
+def kb_stats(pdf_dir: str, vectorstore) -> Tuple[int, Optional[int]]:
+    num_docs = len(list_documents(pdf_dir))
+    num_chunks = get_chunk_count(vectorstore)
+    return num_docs, num_chunks
+
+
 @st.cache_resource(show_spinner=False)
 def cached_vectorstore():
     return get_vectorstore(rebuild=False)
@@ -206,17 +231,29 @@ if "last_answer" not in st.session_state:
 if "memory_history" not in st.session_state:
     st.session_state.memory_history = []
 
+api_key = os.getenv("OPENAI_API_KEY")
+vectorstore = get_vs_if_ready(api_key)
 
 with st.sidebar:
     st.header("Settings")
 
-    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         st.warning("OPENAI_API_KEY missing.")
 
     st.divider()
 
+    with st.expander("Knowledge base stats", expanded=True):
+        num_docs, num_chunks = kb_stats(DEFAULT_PDF_DIR, vectorstore)
+        st.caption(f"Documents: **{num_docs}**")
+        if num_chunks is not None:
+            st.caption(f"Chunks: **{num_chunks}**")
+        else:
+            st.caption("Chunks: **—** (index not loaded)")
+
+    st.divider()
+
     new_chat = st.button("New chat", use_container_width=True)
+
     if new_chat:
         st.session_state.messages = []
         st.session_state.pending_question = None
@@ -241,9 +278,6 @@ with st.sidebar:
         st.rerun()
 
     st.session_state.source_filter = None if selected_doc == "All documents" else selected_doc
-
-
-vectorstore = get_vs_if_ready(api_key)
 
 
 if not st.session_state.messages:

@@ -44,11 +44,11 @@ def retrieve_with_scores(
     )
 
     if source_filter:
-        sf = source_filter.lower()
+        sf = source_filter.casefold()
         docs_and_scores = [
             (d, s)
             for (d, s) in docs_and_scores
-            if str(d.metadata.get("source", "")).lower() == sf
+            if str(d.metadata.get("source", "")).casefold() == sf
         ]
 
     docs_and_scores.sort(key=lambda x: x[1])
