@@ -33,90 +33,68 @@ st.markdown(
     """
     <style>
       .block-container{
-        padding-top:1.2rem;
-        max-width:980px;
-        margin:0 auto;
-        padding-left:0 !important;
-        padding-right:0 !important;
+        padding-top: 1.2rem;
+        max-width: 980px;
+        margin: 0 auto;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
       }
 
-      html, body, [data-testid="stAppViewContainer"], .stApp{
-        background:#ffffff !important;
-        color:#0f172a !important;
-      }
+     .user-bubble{
+        padding: 14px 18px;
+        border-radius: 16px;
+        margin-left: auto;
+        margin-bottom: 12px;
 
-      h1,h2,h3,p,div,span,label{
-        color:#0f172a !important;
-      }
+        background: rgba(99, 102, 241, 0.15);
 
-      h1{
-        font-size:1.5rem !important;
-        font-weight:600 !important;
-      }
-
-      .empty-wrap{ text-align:center; margin-top:20vh; }
-      .empty-title{ font-size:2.1rem; font-weight:600; }
-      .empty-sub{ font-size:0.95rem; opacity:0.7; margin-top:0.6rem; }
-
-      .user-bubble{
-        margin-left:auto;
-        margin-right:0;
-        background:#eef2ff;
-        border-left:none;
-        padding:14px 18px;
-        border-radius:16px;
-        width:fit-content;
-        max-width:720px;
-        box-shadow:none !important;
-      }
-
-      .bubble-label{
-        font-size:0.72rem;
-        font-weight:600;
-        text-transform:uppercase;
-        opacity:0.55;
-        margin-bottom:0.3rem;
+        width: fit-content;
+        max-width: 720px;
       }
 
       .assistant-plain{
-        margin:0.8rem auto 1.4rem 0;
-        max-width:820px;
-        line-height:1.7;
-        font-size:0.96rem;
+        margin: 0.6rem 0 1.2rem 0;
+        max-width: 820px;
+        line-height: 1.7;
+        font-size: 0.95rem;
       }
 
+      .bubble-label,
       .assistant-label{
-        font-size:0.72rem;
-        font-weight:600;
-        text-transform:uppercase;
-        opacity:0.45;
-        margin-bottom:0.25rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        opacity: 0.6;
+        margin-bottom: 0.25rem;
       }
 
-      section[data-testid="stSidebar"]{ width:340px !important; }
+      .empty-wrap{
+        text-align: center;
+        margin-top: 20vh;
+      }
+
+      .empty-title{
+        font-size: 2.1rem;
+        font-weight: 600;
+      }
+
+      .empty-sub{
+        font-size: 0.95rem;
+        opacity: 0.7;
+        margin-top: 0.6rem;
+      }
 
       div[data-testid="stChatInput"]{
-        max-width:980px;
-        margin:0 auto !important;
-        padding-left:0 !important;
-        padding-right:0 !important;
-        transform:none !important;
-      }
-
-      div[data-testid="stChatInput"] textarea,
-      div[data-testid="stChatInput"] input{
-        width:100% !important;
-      }
-
-      hr[data-testid="stDivider"]{
-        max-width:980px;
-        margin-left:auto;
-        margin-right:auto;
+        max-width: 980px;
+        margin: 0 auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
       }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
 
 st.title("Your Healthcare Assistant")
 st.caption("Answers are generated strictly from the uploaded healthcare documents. ")
