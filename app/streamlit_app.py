@@ -141,22 +141,24 @@ def greeting_reply() -> str:
     )
 
 def render_user(content: str):
+    safe = (content or "").replace("\n", "<br>")
     st.markdown(
         f"""
         <div class="user-bubble">
           <div class="bubble-label">You</div>
-          {content.replace("\n","<br>")}
+          {safe}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 def render_assistant(content: str):
+    safe = (content or "").replace("\n", "<br>")
     st.markdown(
         f"""
         <div class="assistant-plain">
           <div class="assistant-label">Assistant</div>
-          {content.replace("\n","<br>")}
+          {safe}
         </div>
         """,
         unsafe_allow_html=True,
