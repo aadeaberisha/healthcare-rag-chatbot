@@ -16,6 +16,18 @@ This project implements a grounded RAG system that:
 - **NO_ANSWER Safety**: Returns exactly `"It is not explicitly stated in the documents."` when context doesn't contain explicit answers
 - **Streamlit Web App**: Clean, modern chat interface with document filtering and knowledge base stats
 
+## Live Demo
+
+A live version of the Healthcare RAG Chatbot is available at:
+
+**https://healthcare-rag-chatbot-adea.streamlit.app**
+
+The demo allows users to:
+- Ask healthcare-related questions grounded in the uploaded documents
+- View source citations for each answer
+- Filter queries by individual documents
+- See safe fallback responses when information is not explicitly stated
+
 ## Project Structure
 
 ```
@@ -43,7 +55,7 @@ healthcare-rag-chatbot/
 ## Setup
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+
 - OpenAI API key
 
 ### Installation
@@ -88,5 +100,4 @@ The app will open in your browser at `http://localhost:8501`.
 
 - Does prior authorization increase time to treatment initiation for cancer drugs?
 - What range of AUC values was reported for AI models using HIE data?
-- In which healthcare settings are patient prioritization tools used according to the review?
 - Which model achieved higher accuracy compared to the senior billing coder?
